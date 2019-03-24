@@ -5632,6 +5632,10 @@ const char *CompilerGLSL::index_to_swizzle(uint32_t index)
 		return "z";
 	case 3:
 		return "w";
+	case 0xFFFFFFFF:
+		//A Component literal may also be FFFFFFFF, which means the corresponding
+		// result component has no source and is undefined (just use first component)
+		return "x";
 	default:
 		SPIRV_CROSS_THROW("Swizzle index out of range");
 	}
@@ -7390,7 +7394,7 @@ void CompilerGLSL::emit_instruction(const Instruction &instruction)
 
 		bool shuffle = false;
 		for (uint32_t i = 0; i < length; i++)
-			if (elems[i] >= type0.vecsize)
+			if (elems[i] >= type0.vecsize && elems[i] != 0xFFFFFFFF)
 				shuffle = true;
 
 		// Cannot use swizzles with packed expressions, force shuffle path.
@@ -7410,7 +7414,7 @@ void CompilerGLSL::emit_instruction(const Instruction &instruction)
 			for (uint32_t i = 0; i < length; i++)
 			{
 				if (elems[i] >= type0.vecsize)
-					args.push_back(to_extract_component_expression(vec1, elems[i] - type0.vecsize));
+					args.push_back(to_extract_component_expression(vec1, elems[i] == 0xFFFFFFFF ? elems[i] : elems[i] - type0.vecsize));
 				else
 					args.push_back(to_extract_component_expression(vec0, elems[i]));
 			}
